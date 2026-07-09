@@ -58,8 +58,15 @@ class MySqlFlywayMigrationTest {
                       'taxes_and_fees_included'
                   )
                 """, Integer.class);
+        Integer bookingTableCount = jdbcTemplate.queryForObject("""
+                SELECT COUNT(*)
+                FROM information_schema.tables
+                WHERE table_schema = DATABASE()
+                  AND table_name = 'bookings'
+                """, Integer.class);
 
-        assertThat(appliedVersions).containsExactly("1", "2");
+        assertThat(appliedVersions).containsExactly("1", "2", "3");
         assertThat(rentalColumnCount).isEqualTo(10);
+        assertThat(bookingTableCount).isEqualTo(1);
     }
 }
