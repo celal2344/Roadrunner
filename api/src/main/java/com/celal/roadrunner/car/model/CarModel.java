@@ -18,7 +18,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Car extends BaseEntity {
+public class CarModel extends BaseEntity {
     @Column(nullable = false, unique = true)
     private String plate;
 
@@ -31,7 +31,7 @@ public class Car extends BaseEntity {
     @Column(nullable = false)
     private String category;
 
-    @Column(nullable = false)
+    @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal dailyPrice;
 
     @Column(nullable = false)

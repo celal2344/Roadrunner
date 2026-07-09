@@ -1,3 +1,14 @@
 spring:
   application:
     name: roadrunner
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/roadrunner
+    username: root
+    password: 3131
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
