@@ -1,6 +1,6 @@
 package com.celal.roadrunner.car.controller;
 
-import com.celal.roadrunner.car.dto.CarResponseDTO;
+import com.celal.roadrunner.car.dto.CarDTO;
 import com.celal.roadrunner.car.dto.CarSearchParamsDTO;
 import com.celal.roadrunner.car.dto.CreateCarRequestDTO;
 import com.celal.roadrunner.car.service.CarService;
@@ -22,15 +22,15 @@ public class CarController {
     private final CarService carService;
 
     @PostMapping
-    public ResponseEntity<CarResponseDTO> createCar(
+    public ResponseEntity<CarDTO> createCar(
             @Valid @RequestBody CreateCarRequestDTO createCarRequest
     ) {
-        CarResponseDTO createdCar = carService.createCar(createCarRequest);
+        CarDTO createdCar = carService.createCar(createCarRequest);
         return ResponseEntity.created(URI.create("/api/cars/" + createdCar.getId())).body(createdCar);
     }
 
     @GetMapping
-    public ResponseEntity<PaginatedResponse<CarResponseDTO>> searchCars(
+    public ResponseEntity<PaginatedResponse<CarDTO>> searchCars(
             @Valid @ModelAttribute CarSearchParamsDTO params,
             @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.ASC)
             Pageable pageable

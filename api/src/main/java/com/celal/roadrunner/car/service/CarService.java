@@ -1,6 +1,6 @@
 package com.celal.roadrunner.car.service;
 
-import com.celal.roadrunner.car.dto.CarResponseDTO;
+import com.celal.roadrunner.car.dto.CarDTO;
 import com.celal.roadrunner.car.dto.CarSearchParamsDTO;
 import com.celal.roadrunner.car.dto.CreateCarRequestDTO;
 import com.celal.roadrunner.car.entity.CarEntity;
@@ -15,8 +15,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 public interface CarService {
-    CarResponseDTO createCar(CreateCarRequestDTO createCarRequest);
-    PaginatedResponse<CarResponseDTO> searchCars(CarSearchParamsDTO params, Pageable pageable);
+    CarDTO createCar(CreateCarRequestDTO createCarRequest);
+    PaginatedResponse<CarDTO> searchCars(CarSearchParamsDTO params, Pageable pageable);
 }
 
 @Service
@@ -25,7 +25,7 @@ class CarServiceImpl implements CarService{
     private final CarRepository carRepo;
 
     @Override
-    public CarResponseDTO createCar(CreateCarRequestDTO request) {
+    public CarDTO createCar(CreateCarRequestDTO request) {
         if (carRepo.existsByPlate(request.getPlate())) {
             throw new IllegalArgumentException("Plate already exists");
         }
@@ -52,11 +52,11 @@ class CarServiceImpl implements CarService{
     }
 
     @Override
-    public PaginatedResponse<CarResponseDTO> searchCars(
+    public PaginatedResponse<CarDTO> searchCars(
             CarSearchParamsDTO params,
             Pageable pageable
     ) {
-        Page<CarResponseDTO> result = carRepo
+        Page<CarDTO> result = carRepo
                 .findAll(CarSpecifications.withFilters(params), withStableSort(pageable))
                 .map(this::toResponse);
 
@@ -79,8 +79,8 @@ class CarServiceImpl implements CarService{
         return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort);
     }
 
-    private CarResponseDTO toResponse(CarEntity car) {
-        return CarResponseDTO.builder()
+    private CarDTO toResponse(CarEntity car) {
+        return CarDTO.builder()
                 .id(car.getId())
                 .brand(car.getBrand())
                 .model(car.getModel())

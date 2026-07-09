@@ -1,4 +1,4 @@
-package com.celal.roadrunner.user.model;
+package com.celal.roadrunner.user.entity;
 
 import com.celal.roadrunner.common.entity.BaseEntity;
 
@@ -20,7 +20,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public class AppUser extends BaseEntity {
+public class AppUserEntity extends BaseEntity {
     @Column(nullable = false)
     private String fullName;
 
