@@ -1,14 +1,22 @@
 package com.celal.roadrunner.car.service;
 
 import com.celal.roadrunner.car.dto.CarResponseDTO;
+import com.celal.roadrunner.car.dto.CarSearchParamsDTO;
 import com.celal.roadrunner.car.dto.CreateCarRequestDTO;
 import com.celal.roadrunner.car.entity.CarEntity;
 import com.celal.roadrunner.car.repository.CarRepository;
+import com.celal.roadrunner.car.specification.CarSpecifications;
+import com.celal.roadrunner.common.dto.PaginatedResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 public interface CarService {
     CarResponseDTO createCar(CreateCarRequestDTO createCarRequest);
+    PaginatedResponse<CarResponseDTO> searchCars(CarSearchParamsDTO params, Pageable pageable);
 }
 
 @Service
@@ -41,6 +49,34 @@ class CarServiceImpl implements CarService{
                 .build();
         CarEntity savedCar = carRepo.save(car);
         return toResponse(savedCar);
+    }
+
+    @Override
+    public PaginatedResponse<CarResponseDTO> searchCars(
+            CarSearchParamsDTO params,
+            Pageable pageable
+    ) {
+        Page<CarResponseDTO> result = carRepo
+                .findAll(CarSpecifications.withFilters(params), withStableSort(pageable))
+                .map(this::toResponse);
+
+        return new PaginatedResponse<>(
+                result.getContent(),
+                result.getNumber(),
+                result.getSize(),
+                result.getTotalElements(),
+                result.getTotalPages(),
+                result.hasNext(),
+                result.hasPrevious()
+        );
+    }
+
+    private Pageable withStableSort(Pageable pageable) {
+        Sort sort = pageable.getSort();
+        if (sort.getOrderFor("id") == null) {
+            sort = sort.and(Sort.by(Sort.Direction.ASC, "id"));
+        }
+        return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort);
     }
 
     private CarResponseDTO toResponse(CarEntity car) {
