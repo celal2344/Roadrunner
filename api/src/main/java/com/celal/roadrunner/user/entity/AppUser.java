@@ -1,4 +1,4 @@
-package com.celal.roadrunner.user.model;
+package com.celal.roadrunner.user.entity;
 
 import com.celal.roadrunner.common.entity.BaseEntity;
 
