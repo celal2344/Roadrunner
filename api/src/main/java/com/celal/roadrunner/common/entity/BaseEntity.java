@@ -1,4 +1,4 @@
-package com.celal.roadrunner.common.model;
+package com.celal.roadrunner.common.entity;
 
 import java.time.Instant;
 
@@ -6,7 +6,6 @@ import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 
 import lombok.Getter;
-import org.hibernate.annotations.UpdateTimestamp;
 
 @Getter
 @MappedSuperclass

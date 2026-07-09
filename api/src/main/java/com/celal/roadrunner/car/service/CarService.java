@@ -2,7 +2,7 @@ package com.celal.roadrunner.car.service;
 
 import com.celal.roadrunner.car.dto.CarResponseDTO;
 import com.celal.roadrunner.car.dto.CreateCarRequestDTO;
-import com.celal.roadrunner.car.model.CarModel;
+import com.celal.roadrunner.car.entity.CarEntity;
 import com.celal.roadrunner.car.repository.CarRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,23 +21,47 @@ class CarServiceImpl implements CarService{
         if (carRepo.existsByPlate(request.getPlate())) {
             throw new IllegalArgumentException("Plate already exists");
         }
-        CarModel car = CarModel.builder()
+        CarEntity car = CarEntity.builder()
                 .brand(request.getBrand())
                 .model(request.getModel())
                 .plate(request.getPlate())
                 .category(request.getCategory())
+                .supplier(request.getSupplier())
+                .vehicleType(request.getVehicleType())
+                .transmissionType(request.getTransmissionType())
+                .fuelType(request.getFuelType())
+                .seatCount(request.getSeatCount())
                 .dailyPrice(request.getDailyPrice())
+                .unlimitedMileage(request.isUnlimitedMileage())
+                .flexibleCancellation(request.isFlexibleCancellation())
+                .carlaCashEligible(request.isCarlaCashEligible())
+                .collisionDamageWaiverIncluded(request.isCollisionDamageWaiverIncluded())
+                .taxesAndFeesIncluded(request.isTaxesAndFeesIncluded())
                 .active(request.isActive())
                 .build();
-        CarModel savedCar = carRepo.save(car);
+        CarEntity savedCar = carRepo.save(car);
+        return toResponse(savedCar);
+    }
+
+    private CarResponseDTO toResponse(CarEntity car) {
         return CarResponseDTO.builder()
-                .id(savedCar.getId())
-                .brand(savedCar.getBrand())
-                .model(savedCar.getModel())
-                .plate(savedCar.getPlate())
-                .category(savedCar.getCategory())
-                .dailyPrice(savedCar.getDailyPrice())
-                .active(savedCar.isActive())
+                .id(car.getId())
+                .brand(car.getBrand())
+                .model(car.getModel())
+                .plate(car.getPlate())
+                .category(car.getCategory())
+                .supplier(car.getSupplier())
+                .vehicleType(car.getVehicleType())
+                .transmissionType(car.getTransmissionType())
+                .fuelType(car.getFuelType())
+                .seatCount(car.getSeatCount())
+                .dailyPrice(car.getDailyPrice())
+                .unlimitedMileage(car.isUnlimitedMileage())
+                .flexibleCancellation(car.isFlexibleCancellation())
+                .carlaCashEligible(car.isCarlaCashEligible())
+                .collisionDamageWaiverIncluded(car.isCollisionDamageWaiverIncluded())
+                .taxesAndFeesIncluded(car.isTaxesAndFeesIncluded())
+                .active(car.isActive())
                 .build();
     }
 }

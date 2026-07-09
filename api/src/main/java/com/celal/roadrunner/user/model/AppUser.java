@@ -1,6 +1,6 @@
 package com.celal.roadrunner.user.model;
 
-import com.celal.roadrunner.common.model.BaseEntity;
+import com.celal.roadrunner.common.entity.BaseEntity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
