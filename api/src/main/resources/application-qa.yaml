@@ -1,0 +1,3 @@
+app:
+  qa-seeder:
+    enabled: true
