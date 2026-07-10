@@ -1,100 +1,128 @@
-﻿# Roadrunner TODO
+# Roadrunner TODO
 
-This is the learning roadmap for taking the current Spring Boot API from local development toward deployment, observability, and async communication practice.
+This is the learning roadmap for taking the current Spring Boot API toward observability, async messaging, and AWS-style deployment practice without using real AWS cloud resources.
 
-## 1. Docker and local deployment
+## Current baseline
 
-- [ ] Add a `Dockerfile` for the Spring Boot API.
-- [ ] Add `docker-compose.yml` with:
-  - [ ] API container
-  - [ ] MySQL container
-  - [ ] Redis container
-  - [ ] RabbitMQ container with management UI
-- [ ] Load environment variables from `.env`.
-- [ ] Add container health checks for MySQL, Redis, RabbitMQ, and API.
-- [ ] Make API wait for dependent services through health checks or retry-safe startup.
-- [ ] Verify Flyway migrations run correctly on fresh containers.
+- [x] Spring Boot API lives under `api/`.
+- [x] Java 21 + Spring Boot 4.1.0.
+- [x] MySQL + Spring Data JPA.
+- [x] Flyway migrations.
+- [x] Redis dependency/config exists.
+- [x] Spring Security + JWT auth exists.
+- [x] Redis-backed refresh token flow exists.
+- [x] Actuator dependency exists.
+- [x] Basic health/info config exists.
+- [ ] Full deployment-style local environment is not done yet.
+- [ ] Monitoring stack is not done yet.
+- [ ] RabbitMQ async messaging is not done yet.
+- [ ] LocalStack + Terraform AWS practice is not done yet.
 
-## 2. Environment and production profiles
+Important rule: do not use real AWS credentials for this learning phase.
 
-- [ ] Keep real secrets out of git.
-- [ ] Use `.env.example` as the committed template.
-- [ ] Add `application-prod.yaml` for production-specific config.
-- [ ] Disable SQL logging in production.
-- [ ] Set `spring.jpa.open-in-view=false` unless there is a reason to keep it.
-- [ ] Decide whether Scalar/OpenAPI docs stay public, protected, or disabled in production.
-- [ ] Use strict production CORS origins.
-- [ ] Confirm JWT secret is provided only through environment variables in deployed environments.
+---
 
-## 3. Health checks and actuator
+## 1. Docker local runtime
 
-- [x] Add actuator dependency.
-- [x] Expose health/info endpoints.
-- [x] Permit public access to health endpoints.
-- [ ] Verify these endpoints locally:
+Goal: make the whole project run like a small production system on your laptop.
+
+Add these files:
+
+```text
+Dockerfile
+compose.yaml
+.env.example
+```
+
+Compose services:
+
+- [ ] `api` - Spring Boot app.
+- [ ] `mysql` - local MySQL, acts like fake RDS.
+- [ ] `redis` - local Redis, acts like fake ElastiCache.
+- [ ] `rabbitmq` - local RabbitMQ with management UI.
+- [ ] `localstack` - fake AWS API.
+- [ ] `prometheus` - metrics collector.
+- [ ] `grafana` - metrics dashboard.
+
+Environment work:
+
+- [ ] Keep `.env` ignored.
+- [ ] Keep `.env.example` committed.
+- [ ] Make API read DB/Redis/RabbitMQ/LocalStack config from env vars.
+- [ ] Add health checks for MySQL, Redis, RabbitMQ, LocalStack, and API.
+- [ ] Verify fresh startup from zero with `docker compose up --build`.
+- [ ] Verify Flyway runs on a fresh MySQL volume.
+
+---
+
+## 2. Observability first
+
+Goal: before learning AWS deployment, know how to see if the app is alive, slow, or broken.
+
+Actuator:
+
+- [x] Expose `health` and `info`.
+- [ ] Verify locally:
   - `GET /actuator/health`
   - `GET /actuator/health/liveness`
   - `GET /actuator/health/readiness`
-- [ ] Decide whether detailed health output should be hidden, public, or authorized-only.
-- [ ] Add deployment health probes using actuator endpoints.
-
-## 4. Logging
-
-- [ ] Add structured JSON logging for deployment environments.
-- [ ] Add request logging with:
-  - method
-  - path
-  - status
-  - duration
-  - request id
-- [ ] Add correlation/request id support.
-- [ ] Make log levels configurable through environment variables.
-- [ ] Avoid logging passwords, JWTs, refresh tokens, or other secrets.
-- [ ] Decide which package logs should be DEBUG locally and INFO in production.
-
-## 5. Monitoring and metrics
-
-- [ ] Add `micrometer-registry-prometheus`.
+- [ ] Add Prometheus support with `micrometer-registry-prometheus`.
 - [ ] Expose `/actuator/prometheus`.
-- [ ] Add Prometheus to Docker Compose.
-- [ ] Add Grafana to Docker Compose.
-- [ ] Create basic dashboard panels for:
-  - request count
-  - request latency
-  - error rate
-  - JVM memory
-  - DB health
-  - Redis health
-  - RabbitMQ health
-- [ ] Add alerting later after the metrics are understood.
+- [ ] Decide which actuator endpoints are public, protected, or disabled.
 
-## 6. CI
+Logging:
 
-- [ ] Add GitHub Actions workflow.
-- [ ] Run `./mvnw test` on push and pull requests.
-- [ ] Cache Maven dependencies.
-- [ ] Add Docker image build later.
-- [ ] Optionally run Testcontainers-based migration tests only when Docker is available.
+- [ ] Add request logging with method, path, status, duration, and request id.
+- [ ] Add correlation/request id support.
+- [ ] Make log levels configurable from env vars.
+- [ ] Avoid logging passwords, JWTs, refresh tokens, or secrets.
+- [ ] Optional later: structured JSON logs for deployment-like runs.
 
-## 7. RabbitMQ learning plan
+Grafana dashboard:
 
-Goal: learn async messaging without overcomplicating the app.
+- [ ] Request count.
+- [ ] Request latency.
+- [ ] Error rate.
+- [ ] JVM memory.
+- [ ] DB health.
+- [ ] Redis health.
+- [ ] RabbitMQ health.
 
-Recommended model:
+---
+
+## 3. RabbitMQ async messaging
+
+Goal: learn async backend communication separately from AWS.
+
+Use case:
 
 ```text
-API instance
-  receives HTTP request
-  saves DB change
-  publishes RabbitMQ event
+POST /api/cars
+  -> save car
+  -> publish CarCreatedEvent to RabbitMQ
+  -> return 201 immediately
 
-Worker instance
-  listens to RabbitMQ queue
-  processes event
-  logs result or updates DB
+worker instance
+  -> consumes CarCreatedEvent
+  -> logs event first
+  -> later simulates supplier sync / indexing / notification
 ```
 
-Even if both processes use the same codebase, treat them as different roles:
+Add dependency:
+
+- [ ] `spring-boot-starter-amqp`
+
+RabbitMQ config:
+
+- [ ] Exchange: `roadrunner.events`.
+- [ ] Queue: `car.created.queue`.
+- [ ] Routing key: `car.created`.
+- [ ] Dead-letter exchange: `roadrunner.dlx`.
+- [ ] Dead-letter queue: `car.created.dlq`.
+- [ ] Retry behavior.
+- [ ] Idempotency guard for duplicate messages.
+
+App role split:
 
 ```env
 APP_ROLE=api
@@ -104,46 +132,161 @@ APP_ROLE=api
 APP_ROLE=worker
 ```
 
-- [ ] Add RabbitMQ to Docker Compose.
-- [ ] Add Spring AMQP dependency.
-- [ ] Add RabbitMQ config for:
-  - exchange
-  - queue
-  - routing key
-  - dead-letter exchange
-  - dead-letter queue
-- [ ] Create a simple event DTO, for example `CarCreatedEvent`.
-- [ ] Publish `CarCreatedEvent` after a car is created.
-- [ ] Add a worker consumer that logs the event.
-- [ ] Run two app instances:
-  - API role: exposes HTTP controllers and publishes messages
-  - Worker role: consumes messages and performs async work
-- [ ] Add retry behavior.
-- [ ] Add dead-letter queue handling.
-- [ ] Add idempotency guard so duplicate messages do not cause duplicate side effects.
+Tasks:
 
-Important rule: use RabbitMQ for side effects first, not synchronous request/response.
+- [ ] API role exposes controllers and publishes events.
+- [ ] Worker role consumes RabbitMQ messages.
+- [ ] Run both roles through Docker Compose.
+- [ ] Add one happy-path consumer test.
+- [ ] Add one failed-message/DLQ test.
 
-Good first use case:
+Do not use RabbitMQ as request/response RPC at first.
+
+---
+
+## 4. Local AWS practice with LocalStack + Terraform
+
+Goal: practice AWS concepts locally without deploying to real AWS.
+
+Add this structure:
 
 ```text
-POST /api/cars -> save car -> publish CarCreatedEvent -> return 201
+infra/
+  localstack/
+    providers.tf
+    main.tf
+    variables.tf
+    outputs.tf
 ```
 
-Avoid this at the beginning:
+Tools:
 
-```text
-HTTP request -> RabbitMQ -> wait for another service -> return response
+- [ ] Docker Desktop.
+- [ ] Terraform.
+- [ ] AWS CLI.
+- [ ] LocalStack container.
+- [ ] Optional: `tflocal` wrapper.
+
+Fake AWS resources to create with Terraform:
+
+- [ ] S3 bucket: `roadrunner-uploads-local`.
+- [ ] SQS queue: `roadrunner-booking-events-local` or `roadrunner-car-events-local`.
+- [ ] Secrets Manager secret: `roadrunner/local/app`.
+- [ ] CloudWatch log group: `/local/roadrunner/api`.
+- [ ] ECR repository: `roadrunner-api`.
+- [ ] ECS cluster/task/service skeleton for learning only.
+
+Terraform commands to practice:
+
+```bash
+cd infra/localstack
+terraform init
+terraform fmt
+terraform validate
+terraform plan
+terraform apply
+terraform destroy
 ```
 
-That is RPC over RabbitMQ and is harder to reason about early.
+If using `tflocal`:
 
-## 8. Deployment target
+```bash
+cd infra/localstack
+tflocal init
+tflocal apply
+```
 
-Pick one path first:
+Rules:
 
-- [ ] Docker Compose on a VPS: best for learning real deployment fundamentals.
-- [ ] Railway/Render/Fly.io: faster managed deployment experience.
-- [ ] AWS/GCP/Azure: useful later, but heavier for the first deployment pass.
+- [ ] Use fake AWS credentials only: `AWS_ACCESS_KEY_ID=test`, `AWS_SECRET_ACCESS_KEY=test`.
+- [ ] Point Terraform AWS provider endpoints to `http://localhost:4566`.
+- [ ] Keep Terraform state local for now.
+- [ ] Do not create a real AWS account resource yet.
 
-Recommended first path: Docker Compose locally, then Docker Compose on a small VPS.
+---
+
+## 5. App integration with fake AWS
+
+Goal: connect the Spring Boot app to LocalStack resources.
+
+S3 practice:
+
+- [ ] Add AWS SDK S3 client config.
+- [ ] Add an internal/dev endpoint to upload a dummy file to S3.
+- [ ] Read S3 bucket name from env var.
+- [ ] Verify object exists through AWS CLI against LocalStack.
+
+SQS practice:
+
+- [ ] Add AWS SDK SQS client config.
+- [ ] Publish a simple `CarCreatedEvent` or `BookingRequestedEvent` to SQS.
+- [ ] Add a local worker that polls SQS and logs the event.
+- [ ] Compare RabbitMQ vs SQS behavior in notes.
+
+Secrets Manager practice:
+
+- [ ] Create fake app secret with Terraform.
+- [ ] Read it locally through AWS CLI first.
+- [ ] Later wire Spring Boot to read selected config from Secrets Manager.
+
+CloudWatch practice:
+
+- [ ] Create log group with Terraform.
+- [ ] Learn the concept only; keep real app logs in Docker/Grafana for now.
+
+---
+
+## 6. CI/CD basics
+
+Goal: show interview-ready release discipline.
+
+GitHub Actions:
+
+- [ ] Run Maven tests on push/PR.
+- [ ] Cache Maven dependencies.
+- [ ] Run `terraform fmt -check` for `infra/localstack`.
+- [ ] Run `terraform validate` for `infra/localstack`.
+- [ ] Build Docker image.
+- [ ] Optional later: start MySQL/Redis with services or Testcontainers in CI.
+
+Release flow notes:
+
+- [ ] Write a short `DEPLOYMENT_NOTES.md`.
+- [ ] Document rollback idea: redeploy previous image/tag.
+- [ ] Document smoke test endpoints after deploy.
+
+---
+
+## 7. Carla interview-focused gaps
+
+Use this project to prepare stories around these topics:
+
+- [ ] REST API design for car search and car management.
+- [ ] Auth flow: login, refresh, logout, roles.
+- [ ] Redis use: refresh tokens, caching, rate limiting, locking.
+- [ ] MySQL use: migrations, indexes, filtering, pagination.
+- [ ] Observability: actuator, logs, metrics, dashboards.
+- [ ] Async messaging: RabbitMQ events and SQS comparison.
+- [ ] AWS basics: S3, SQS, Secrets Manager, ECR, ECS, CloudWatch.
+- [ ] CI/CD: tests, Docker image build, Terraform validation.
+- [ ] Production support: logs, health checks, debugging, rollback.
+- [ ] Performance: indexes, pagination, caching, avoiding N+1 queries.
+
+---
+
+## 8. Recommended order
+
+Do this in order:
+
+1. [ ] Dockerfile + Compose for API, MySQL, Redis.
+2. [ ] Add Prometheus endpoint and Grafana/Prometheus compose services.
+3. [ ] Add request logging + request id.
+4. [ ] Add RabbitMQ and `CarCreatedEvent` async flow.
+5. [ ] Add LocalStack service.
+6. [ ] Add Terraform for S3 + SQS first.
+7. [ ] Add Terraform for Secrets Manager.
+8. [ ] Add app integration with S3/SQS.
+9. [ ] Add fake ECR/ECS Terraform skeleton.
+10. [ ] Add GitHub Actions.
+
+Stop after each step and make sure the app still starts and tests still pass.
