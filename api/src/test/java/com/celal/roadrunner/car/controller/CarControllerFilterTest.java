@@ -7,12 +7,14 @@ import com.celal.roadrunner.car.entity.VehicleType;
 import com.celal.roadrunner.car.service.CarService;
 import com.celal.roadrunner.common.config.SecurityConfig;
 import com.celal.roadrunner.common.dto.PaginatedResponse;
+import com.celal.roadrunner.user.repository.AppUserRepository;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -35,7 +37,11 @@ class CarControllerFilterTest {
     @MockitoBean
     private CarService carService;
 
+    @MockitoBean
+    private AppUserRepository appUserRepository;
+
     @Test
+    @WithMockUser
     void bindsFilterCollectionsAndPageableFromQueryParameters() throws Exception {
         when(carService.searchCars(any(), any())).thenReturn(
                 new PaginatedResponse<>(List.of(), 1, 10, 0, 0, false, true)

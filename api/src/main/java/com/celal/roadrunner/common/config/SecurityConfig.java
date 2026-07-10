@@ -5,6 +5,8 @@ import com.celal.roadrunner.common.exception.NotFoundException;
 import com.celal.roadrunner.user.entity.AppUserEntity;
 import com.celal.roadrunner.user.repository.AppUserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.MessageSource;
@@ -40,6 +42,7 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.time.Instant;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
 
 @Configuration
@@ -49,19 +52,39 @@ public class SecurityConfig {
     private final AppUserRepository appUserRepo;
     private final MessageSource messageSource;
     private final ObjectMapper objectMapper;
+    private final String jwtSecret;
+    private final String allowedOrigins;
 
-    public SecurityConfig(AppUserRepository appUserRepo, MessageSource messageSource, ObjectMapper objectMapper) {
+    public SecurityConfig(
+            AppUserRepository appUserRepo,
+            MessageSource messageSource,
+            ObjectMapper objectMapper,
+            @Value("${app.security.jwt.secret}") String jwtSecret,
+            @Value("${app.cors.allowed-origins}") String allowedOrigins
+    ) {
         this.appUserRepo = appUserRepo;
         this.messageSource = messageSource;
         this.objectMapper = objectMapper;
+        this.jwtSecret = jwtSecret;
+        this.allowedOrigins = allowedOrigins;
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public static ObjectMapper objectMapper() {
+        return new ObjectMapper();
     }
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // 1. Allow both localhost and the configured URL
-        configuration.setAllowedOrigins(List.of("http://localhost:5173"));
+        configuration.setAllowedOrigins(
+                Arrays.stream(allowedOrigins.split(","))
+                        .map(String::trim)
+                        .filter(origin -> !origin.isBlank())
+                        .toList()
+        );
 
         // 2. Allow ALL standard methods
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
@@ -98,7 +121,15 @@ public class SecurityConfig {
         http
                 .csrf(AbstractHttpConfigurer::disable) // Disable CSRF for stateless APIs
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**","/scalar","/scalar/","/scalar/**","/scalar/openapi").permitAll() // Public login/register endpoints
+                        .requestMatchers(
+                                "/api/auth/**",
+                                "/scalar",
+                                "/scalar/",
+                                "/scalar/**",
+                                "/scalar/openapi",
+                                "/actuator/health",
+                                "/actuator/health/**"
+                        ).permitAll() // Public login/register/docs/health endpoints
                         .requestMatchers(HttpMethod.POST, "/api/cars", "/api/cars/**").hasRole("ADMIN")
                         .anyRequest().authenticated()                  // Secure everything else
                 )
@@ -161,10 +192,8 @@ public class SecurityConfig {
     }
 
     private SecretKey jwtSecretKey() {
-        String secret = "arapgir-arapgir-arapgir-arapgir-arapgir-arapgir-arapgir-arapgir";
-
         return new SecretKeySpec(
-                secret.getBytes(StandardCharsets.UTF_8),
+                jwtSecret.getBytes(StandardCharsets.UTF_8),
                 "HmacSHA256"
         );
     }
