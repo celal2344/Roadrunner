@@ -1,11 +1,17 @@
 package com.celal.roadrunner.common.config;
 
+import com.celal.roadrunner.common.dto.ErrorResponseDTO;
 import com.celal.roadrunner.common.exception.NotFoundException;
 import com.celal.roadrunner.user.entity.AppUserEntity;
 import com.celal.roadrunner.user.repository.AppUserRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -15,15 +21,11 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -36,6 +38,7 @@ import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
+import java.time.Instant;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
@@ -44,8 +47,13 @@ import java.util.List;
 @EnableMethodSecurity
 public class SecurityConfig {
     private final AppUserRepository appUserRepo;
-    public SecurityConfig(AppUserRepository appUserRepo) {
+    private final MessageSource messageSource;
+    private final ObjectMapper objectMapper;
+
+    public SecurityConfig(AppUserRepository appUserRepo, MessageSource messageSource, ObjectMapper objectMapper) {
         this.appUserRepo = appUserRepo;
+        this.messageSource = messageSource;
+        this.objectMapper = objectMapper;
     }
 
     @Bean
@@ -96,6 +104,12 @@ public class SecurityConfig {
                 )
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS) // No sessions
+                )
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint((request, response, ex) ->
+                                writeSecurityError(response, HttpStatus.UNAUTHORIZED, "auth.unauthorized"))
+                        .accessDeniedHandler((request, response, ex) ->
+                                writeSecurityError(response, HttpStatus.FORBIDDEN, "auth.forbidden"))
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
@@ -152,6 +166,30 @@ public class SecurityConfig {
         return new SecretKeySpec(
                 secret.getBytes(StandardCharsets.UTF_8),
                 "HmacSHA256"
+        );
+    }
+
+    private void writeSecurityError(
+            jakarta.servlet.http.HttpServletResponse response,
+            HttpStatus status,
+            String messageKey
+    ) throws java.io.IOException {
+        String message = messageSource.getMessage(
+                messageKey,
+                null,
+                LocaleContextHolder.getLocale()
+        );
+
+        response.setStatus(status.value());
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        objectMapper.writeValue(
+                response.getWriter(),
+                ErrorResponseDTO.builder()
+                        .status(status.value())
+                        .error(status.getReasonPhrase())
+                        .message(message)
+                        .timestamp(Instant.now())
+                        .build()
         );
     }
 }
