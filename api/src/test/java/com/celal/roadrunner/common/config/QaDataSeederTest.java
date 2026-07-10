@@ -2,8 +2,6 @@ package com.celal.roadrunner.common.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.celal.roadrunner.booking.entity.BookingStatus;
-import com.celal.roadrunner.booking.repository.BookingRepository;
 import com.celal.roadrunner.car.entity.FuelType;
 import com.celal.roadrunner.car.entity.VehicleType;
 import com.celal.roadrunner.car.repository.CarRepository;
@@ -31,28 +29,20 @@ class QaDataSeederTest {
     @Autowired
     private CarRepository carRepository;
 
-    @Autowired
-    private BookingRepository bookingRepository;
-
     @Test
     void seedsBroadAndRepeatableQaDataset() throws Exception {
         assertThat(userRepository.count()).isEqualTo(4);
         assertThat(carRepository.count()).isEqualTo(10);
-        assertThat(bookingRepository.count()).isEqualTo(4);
         assertThat(carRepository.findAll())
                 .extracting(car -> car.getVehicleType())
                 .contains(VehicleType.values());
         assertThat(carRepository.findAll())
                 .extracting(car -> car.getFuelType())
                 .contains(FuelType.values());
-        assertThat(bookingRepository.findAll())
-                .extracting(booking -> booking.getStatus())
-                .containsExactlyInAnyOrder(BookingStatus.values());
 
         seeder.run();
 
         assertThat(userRepository.count()).isEqualTo(4);
         assertThat(carRepository.count()).isEqualTo(10);
-        assertThat(bookingRepository.count()).isEqualTo(4);
     }
 }

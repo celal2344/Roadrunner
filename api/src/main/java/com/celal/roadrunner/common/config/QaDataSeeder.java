@@ -1,8 +1,5 @@
 package com.celal.roadrunner.common.config;
 
-import com.celal.roadrunner.booking.entity.BookingEntity;
-import com.celal.roadrunner.booking.entity.BookingStatus;
-import com.celal.roadrunner.booking.repository.BookingRepository;
 import com.celal.roadrunner.car.entity.CarEntity;
 import com.celal.roadrunner.car.entity.FuelType;
 import com.celal.roadrunner.car.entity.TransmissionType;
@@ -21,8 +18,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,20 +33,17 @@ public class QaDataSeeder implements CommandLineRunner {
 
     private final AppUserRepository userRepository;
     private final CarRepository carRepository;
-    private final BookingRepository bookingRepository;
 
     @Override
     @Transactional
     public void run(String... args) {
-        Map<String, AppUserEntity> users = seedUsers();
-        Map<String, CarEntity> cars = seedCars();
-        seedBookings(users, cars);
+        seedUsers();
+        seedCars();
 
         log.info(
-                "QA seed complete: {} users, {} cars, {} bookings. QA password: {}",
+                "QA seed complete: {} users, {} cars. QA password: {}",
                 userRepository.count(),
                 carRepository.count(),
-                bookingRepository.count(),
                 QA_PASSWORD
         );
     }
@@ -112,49 +104,6 @@ public class QaDataSeeder implements CommandLineRunner {
         }
 
         return cars;
-    }
-
-    private void seedBookings(
-            Map<String, AppUserEntity> users,
-            Map<String, CarEntity> cars
-    ) {
-        if (bookingRepository.count() > 0) {
-            return;
-        }
-
-        Instant now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
-        bookingRepository.saveAll(List.of(
-                booking(users.get("qa.ada@roadrunner.test"), cars.get("QA-001"),
-                        now.plus(2, ChronoUnit.DAYS), now.plus(5, ChronoUnit.DAYS),
-                        BookingStatus.PENDING, "128.70"),
-                booking(users.get("qa.kerem@roadrunner.test"), cars.get("QA-003"),
-                        now.plus(7, ChronoUnit.DAYS), now.plus(10, ChronoUnit.DAYS),
-                        BookingStatus.CONFIRMED, "201.00"),
-                booking(users.get("qa.mina@roadrunner.test"), cars.get("QA-005"),
-                        now.plus(12, ChronoUnit.DAYS), now.plus(14, ChronoUnit.DAYS),
-                        BookingStatus.CANCELLED, "237.50"),
-                booking(users.get("qa.ada@roadrunner.test"), cars.get("QA-008"),
-                        now.minus(10, ChronoUnit.DAYS), now.minus(7, ChronoUnit.DAYS),
-                        BookingStatus.COMPLETED, "288.00")
-        ));
-    }
-
-    private BookingEntity booking(
-            AppUserEntity user,
-            CarEntity car,
-            Instant startAt,
-            Instant endAt,
-            BookingStatus status,
-            String totalPrice
-    ) {
-        return BookingEntity.builder()
-                .user(user)
-                .car(car)
-                .startAt(startAt)
-                .endAt(endAt)
-                .status(status)
-                .totalPrice(new BigDecimal(totalPrice))
-                .build();
     }
 
     private record UserSeed(String fullName, String email, Role role) {

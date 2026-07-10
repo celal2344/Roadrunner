@@ -65,8 +65,8 @@ class MySqlFlywayMigrationTest {
                   AND table_name = 'bookings'
                 """, Integer.class);
 
-        assertThat(appliedVersions).containsExactly("1", "2", "3");
+        assertThat(appliedVersions).containsExactly("1", "2", "3", "4");
         assertThat(rentalColumnCount).isEqualTo(10);
-        assertThat(bookingTableCount).isEqualTo(1);
+        assertThat(bookingTableCount).isZero();
     }
 }
