@@ -11,6 +11,7 @@ configured in `application.yaml`.
 - `V3__create_bookings.sql` creates bookings, lifecycle statuses, foreign keys,
   data-integrity checks, and indexes for overlap and user lookups.
 - `V4__drop_bookings.sql` removes the discontinued bookings feature table.
+- `V5__recreate_bookings.sql` recreates bookings after the feature was restored.
 
 Applied migration files are immutable because changing even a comment changes
 their Flyway checksum. Add a new versioned migration for every later schema
